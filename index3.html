@@ -1,0 +1,67 @@
+<title>Crossfilter with d3.csv</title>
+<script src="https://d3js.org/d3.v3.min.js"></script>
+<script src="crossfilter.js"></script>
+<h3 id="loading">Loading....</h3>
+<div>Number of rows: <span id="size">0</span></div>
+<h3>Mag</h3>
+<ol id="magnitude"></ol>
+<h3>Raw Mag</h3>
+<ol id="raw_magnitude"></ol>
+<h3>Amp</h3>
+<ol id="amplitude"></ol>
+<script>
+var url = "packages/ext_26_1_L_A/ext_26_1_L_A20200830T040915.csv";
+var numerics = ["magnitude", "raw_magnitude", "amplitude"];
+
+var threadL,
+//computedbrown
+magnitude, raw_magnitude, amplitude;
+
+// load the data from an external file
+d3.csv(url, function(data) {
+
+  // coerce numbers to floats, empty strings to null
+  data.forEach(function(d) {
+    numerics.forEach(function(dim) {
+      d[dim] = isNumber(d[dim]) ? parseFloat(d[dim]) : null;
+    });
+  });
+
+  // load data into crossfilter
+  threadL = crossfilter(data);
+
+  // construct filtering dimensions
+  magnitude = threadL.dimension(function(d) { return d["magnitude"]; });
+  raw_magnitude = threadL.dimension(function(d) { return d["raw_magnitude"]; });
+  amplitude = threadL.dimension(function(d) { return d["amplitude"]; });
+
+  // done loading
+  d3.select("#loading").text("Loaded " + url);
+
+  // display dataset size
+  d3.select("#size").text(threadL.size());
+
+  // display top K lists
+  renderTopList(magnitude, 4, "#magnitude");
+  renderTopList(raw_magnitude, 4, "#raw_magnitude");
+  renderTopList(amplitude, 4, "#amplitude");
+});
+
+// http://stackoverflow.com/a/1830844
+function isNumber(n) {
+  return !isNaN(parseFloat(n)) && isFinite(n);
+}
+
+function renderTopList(dimension, count, selector) {
+  d3.select(selector).selectAll("li")
+    .data(dimension.top(count))
+    .enter().append("li")
+    .text(function(d) { return d.name });
+}
+</script>
+<style>
+body {
+  font-size: 13px;
+  font-family: sans-serif;
+}
+</style>
