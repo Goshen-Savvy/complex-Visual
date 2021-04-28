@@ -1,5 +1,6 @@
-<title>Crossfilter with d3.csv</title>
-<script src="https://d3js.org/d3.v3.min.js"></script>
+<title>Project</title>
+<!-- <script src="https://d3js.org/d3.v4.min.js"></script> -->
+<script src="http://d3js.org/d3.v6.min.js" charset="utf-8"></script>
 <script src="crossfilter.js"></script>
 <h3 id="loading">Loading....</h3>
 <div>Number of rows: <span id="size">0</span></div>
@@ -10,7 +11,7 @@
 <h3>Amp</h3>
 <ol id="amplitude"></ol>
 <script>
-var url = "packages/ext_26_1_L_A/ext_26_1_L_A20200830T040915.csv";
+var url = "try.csv";
 var numerics = ["magnitude", "raw_magnitude", "amplitude"];
 
 var threadL,
@@ -46,7 +47,7 @@ d3.csv(url, function(data) {
   renderTopList(amplitude, 4, "#amplitude");
 });
 
-// http://stackoverflow.com/a/1830844
+
 function isNumber(n) {
   return !isNaN(parseFloat(n)) && isFinite(n);
 }
@@ -55,12 +56,12 @@ function renderTopList(dimension, count, selector) {
   d3.select(selector).selectAll("li")
     .data(dimension.top(count))
     .enter().append("li")
-    .text(function(d) { return d.name });
-}
+    .text(function(d) { return d.package_time + ";" + JSON.stringify(d)});
+} 
 </script>
 <style>
 body {
   font-size: 13px;
-  font-family: sans-serif;
+  font-family: Arial, Helvetica, sans-serif;
 }
 </style>
