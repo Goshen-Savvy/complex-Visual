@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html class="ocks-org do-not-copy">
+<meta charset="utf-8">
+<title>Path Transitions</title>
+<style>
+    .x.axis line {
+        shape-rendering: auto;
+    }
+
+    .line {
+        fill: none;
+        stroke: #000;
+        stroke-width: 1.5px;
+    }
+</style>
+<script src="http://d3js.org/d3.v6.min.js" charset="utf-8"></script>
+
+<script>
+    // define the crawler component
+    function crawler([width, height], capacity = 100) {
+
+        let inside_nodes = []
+        let inside_g // empty selection? 
+        // let outside_g
+        function crawl(selection) {
+            let outside = selection.append("g")
+                .attr("class", "crawlbox")
+            let clipid = `clip${width}x${height}`
+            outside
+                .append("defs")
+                .append("clipPath")
+                .attr("id", clipid)
+                .append("rect")
+                .attr("width", width)
+                .attr("height", height);
+            let inside = outside.append("g")
+                .attr("clip-path", `url(#${clipid})`)
+                .append("g")
+                .attr("class", "crawler")
+
+            // add this group to my selection of controlled groups
+            inside_nodes.push(inside.node())
+            inside_g = d3.selectAll(inside_nodes)
+
+            inside.crawlEnclosure = outside // added to selection object
+            crawl.reset() // depends on inside_g being set
+            return inside
+        }
+
+        let tickcount = 0;
+        function settrans(selection) {
+            selection.attr("transform", `translate(${width - tickcount * 10},0)`)
+        }
+
+        crawl.cycle = function (duration = 750) {
+            function cycler() {
+                tickcount++;
+                d3.active(this)
+                    .call(settrans)
+                    .transition().on("start", cycler)
+            }
+            inside_g.transition()
+                .duration(duration)
+                .ease(d3.easeLinear)
+                .on("start", cycler)
+        }
+
+        crawl.stop = function () {
+            //d3.interrupt(inside_g.node()) // need to get interrupt working?
+            inside_g.interrupt()
+        }
+
+        crawl.reset = function (clock = 0) {
+            tickcount = clock
+            settrans(inside_g)
+        }
+        return crawl
+    }
+
+
+</script>
+
+
+<script>
+    // using the crawler API
+    function doload() {
+        let myset = [
+            { value: 2, x: 5, y: 10 },
+            { value: 17, x: 55, y: 18 },
+            { value: 6, x: 105, y: 1 },
+            { value: 12, x: 205, y: 12 },
+        ]
+
+        c1 = crawler([600, 90])
+
+        let svg1 = d3.select("body").append("p").style("margin-left", "50px")
+            .append("svg").attr("width", 900).attr("height", "400")
+
+        crawlg = c1(svg1)
+        crawlg.crawlEnclosure.attr("transform", "translate(100,100)")
+
+        crawlg.selectAll("circle")
+            .data(myset)
+            .enter().append("circle")
+            .attr("fill", "red")
+            .attr("cx", (d, i) => 900 / 10 * i)
+            .attr("cy", d => d.y)
+            .attr("r", d => d.value)
+        let line = d3.line()
+            .curve(d3.curveBasis)
+            .x(function (d, i) { return 900 / 10 * i })
+            .y(function (d, i) { return d.y });
+        crawlg.append("path")
+            .datum(myset)
+            .attr("class", "line")
+            .attr("d", line)
+
+        crawlg.append("g").attr("transform", "translate(0,45)")
+            .call(d3.axisBottom().scale(d3.scaleLinear().range([0, 300]).domain([0, 900])))
+
+        crawlg2 = c1(svg1)
+        crawlg2.crawlEnclosure.attr("transform", "translate(50,50)")
+
+        crawlg2.selectAll("circle")
+            .data(myset)
+            .enter().append("circle")
+            .attr("fill", "blue")
+            .attr("cx", (d, i) => 900 / 10 * i)
+            .attr("cy", d => d.y)
+            .attr("r", d => d.value)
+
+
+        c1.cycle()
+
+
+        c2 = crawler([300, 45])
+
+        crawlg3 = c2(svg1)
+
+        crawlg3.crawlEnclosure.attr("transform", "translate(150,250)")
+        crawlg3.append("path")
+            .datum(myset)
+            .attr("class", "line")
+            .attr("d", line)
+            .style("stroke", "blue")
+        c2.cycle(1500)
+    }
+
+</script>
+
+<head></head>
+
+<body onload="doload()">
+
+
+
+</body>
+
+</html>
