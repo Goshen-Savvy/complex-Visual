@@ -1,6 +1,7 @@
-<title>Crossfilter with d3.csv</title>
-<script src="https://d3js.org/d3.v6.min.js"></script>
+<title>Project</title>
+<script src="http://d3js.org/d3.v6.min.js" charset="utf-8"></script>
 <script src="crossfilter.js"></script>
+<input id='file-input' type='file' webkitdirectory directory multiple>
 <h3 id="loading">Loading....</h3>
 <div>Number of rows: <span id="size">0</span></div>
 <h3>Mag</h3>
@@ -10,24 +11,32 @@
 <h3>Amp</h3>
 <ol id="amplitude"></ol>
 <script>
-var url = "ext_26_1_L_A20200830T040915.csv";
+var url = "try.csv";
 var numerics = ["magnitude", "raw_magnitude", "amplitude"];
 
-var threadL,
-magnitude, raw_magnitude, amplitude;
+var threadL
+var magnitude, raw_magnitude, amplitude;
 
-// load the data from an external file
-d3.csv(url).then( function(data) {
+var fileInput = document.getElementById('file-input');
+fileInput.addEventListener('change', async(event) => {
+  let input = event.target;
+  let fileList = [];
+  for (let i = 0; i < input.files.length; i++) {
+    let path = URL.createObjectURL(input.files[i])
+    // fileList.push(d3.csv(input.files[i].webkitRelativePath))
+    fileList.push(d3.csv(path))
+  }
 
-  // coerce numbers to floats, empty strings to null
-  data.forEach(function(d) {
-    numerics.forEach(function(dim) {
-      d[dim] = isNumber(d[dim]) ? parseFloat(d[dim]) : null;
-    });
-  });
+  let data
+  try {
+    data = await getAllData(fileList)
+  } catch (err) {
+    console.log(err)
+  }
 
-  // load data into crossfilter
+  // Do something with result...
   threadL = crossfilter(data);
+  console.log(data.length)
 
   // construct filtering dimensions
   magnitude = threadL.dimension(function(d) { return d["magnitude"]; });
@@ -35,32 +44,52 @@ d3.csv(url).then( function(data) {
   amplitude = threadL.dimension(function(d) { return d["amplitude"]; });
 
   // done loading
-  d3.select("#loading").text("Loaded " + url);
-
+  d3.select("#loading").text("Loaded folder " + input.files[0].webkitRelativePath.split("/")[0]);
+  
   // display dataset size
   d3.select("#size").text(threadL.size());
+  //resetData([magnitude, raw_magnitude, amplitude])
 
   // display top K lists
-  renderTopList(magnitude, 4, "#magnitude");
-  renderTopList(raw_magnitude, 4, "#raw_magnitude");
-  renderTopList(amplitude, 4, "#amplitude");
+  renderTopList(magnitude, 7, "#magnitude");
+  renderTopList(raw_magnitude, 7, "#raw_magnitude");
+  renderTopList(amplitude, 7, "#amplitude");
 });
 
-// http://stackoverflow.com/a/1830844
+async function getAllData(fileList) {
+  return Promise.all(fileList).then(function(files) {
+    let data = []
+    // loop through files
+    files.forEach(function(dd) {
+      dd.forEach(function(d) {
+        // coerce numbers to floats, empty strings to null
+        numerics.forEach(function(dim) {
+          d[dim] = isNumber(d[dim]) ? parseFloat(d[dim]) : null;
+        });
+
+        data.push(d)
+      });
+    });
+
+    return data;
+  });
+}
+
 function isNumber(n) {
   return !isNaN(parseFloat(n)) && isFinite(n);
 }
 
 function renderTopList(dimension, count, selector) {
+  d3.select(selector).selectAll("*").remove();
   d3.select(selector).selectAll("li")
     .data(dimension.top(count))
     .enter().append("li")
-    .text(function(d) { return JSON.stringify(d) });
-}
+    .text(function(d) { return d.package_time + ";" + JSON.stringify(d)});
+} 
 </script>
 <style>
 body {
   font-size: 13px;
-  font-family: sans-serif;
+  font-family: Arial, Helvetica, sans-serif;
 }
 </style>
