@@ -58,46 +58,56 @@ var c1;
         // sample code - set up for crossfilter #0
         // threadCF[0].onchange()
 
-        let crawlup = crawler([700,300]) // our crawler factory
+        let crawlup = crawler([700,200]) // our crawler factory
 
         let svg1 = d3.select("body").append("p").style("margin-left", "50px")
-            .append("svg").attr("width", 900).attr("height", "600") // our svg
+            .append("svg").attr("width", 900).attr("height", "1000") // our svg
 
         // crawl region for one datset
-        let crawlg = crawlup(svg1)
-        
-        cfcrawlsetup( crawlg, threadCF[0] )
-     
-        c1 = crawlup;
-        crawlup.cycle();
+        // let crawlg = crawlup(svg1)
 
-        // onchange for the dataset 0
+        let crawlgs = threadCF.slice(0,3).map((cxfilter,i) => {
+            let cg = crawlup(svg1);
+            cfcrawlsetup( cg, cxfilter, yoffset = i*250 )
+            cxfilter.onChange(eventType => {
+                console.log('data changed:', eventType);
+                cfRedraw( cg, cxfilter )        
+                })
+            return cg;
 
-        threadCF[0].onChange(eventType => {
-            console.log('data changed:', eventType);
-            cfRedraw( crawlg, threadCF[0] )
         })
 
-        let dimensionMagnitude = threadCF[0].dimension("magnitude")
+
+        let dimensionMagnitudes = threadCF.map(cxfilter => cxfilter.dimension("magnitude"))
+
         d3.select("body").append("button").text("Change Filter")
             .on("click", d => {                
                 console.log(d)
-                if( dimensionMagnitude.hasCurrentFilter())
-                    dimensionMagnitude.filterAll()
+                if( dimensionMagnitudes[0].hasCurrentFilter())
+                    dimensionMagnitudes.forEach(filterAll) // remove filters
                 else
-                    dimensionMagnitude.filterRange([800,1000])
+                    dimensionMagnitudes.forEach( dim => dim.filterRange([800,1000]))
             })
-    })
 
-    function cfcrawlsetup( crawlg, cf ){
-        crawlg.transform("translate(100,100)")
+        // onchange for the dataset 0
+
+
+
+        crawlup.cycle();
+        c1 = crawlup;
+
+    })
+    
+
+    function cfcrawlsetup( crawlg, cf, yoffset = 100, xoffset = 100 ){
+        crawlg.transform(`translate(${xoffset},${yoffset})`)
         crawlg.crawlRect.attr("fill", "lightgrey").style("display","block" )
 
         // figure out scaling for amplitude
 
         let yscale = d3.scaleLinear()
                             .domain(d3.extent(cf.all(), d => d.amplitude))
-                            .range([0,300])
+                            .range([0,200])
 
         crawlg.append("g").attr("id", "ampcircles")
            .selectAll("circle")
@@ -111,7 +121,7 @@ var c1;
         // should not use d3 axis because the x-extent of the range is not fixed
         let xCount =  cf.all().length
         let xMax = cf.all()[xCount-1].ptime_ms
-        crawlg.append("g").attr("transform", "translate(0,280)")
+        crawlg.append("g").attr("transform", "translate(0,180)")
             .call(d3.axisBottom().scale(d3.scaleLinear()
                 .range([0, xMax / 200 * 50]).domain([0, xMax])).ticks(xCount))       
     }
