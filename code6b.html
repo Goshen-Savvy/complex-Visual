@@ -1,0 +1,143 @@
+<title>Crossfilter with d3.csv</title>
+<script src="https://d3js.org/d3.v6.min.js"></script>
+<script src="crossfilter.js"></script>
+<script src="crawler.js"></script>
+
+<script>
+    let packageNames = [
+        "ext_26_1_L_A",
+        "ext_26_1_L_D",
+        "ext_26_1_R_B",
+        "ext_26_1_R_C",
+        "ext_26_2_L_A",
+        "ext_26_2_L_D",
+        "ext_26_2_R_B",
+        "ext_26_2_R_C",
+
+    ];
+    // listing in bash:
+    // for dird in `ls -R -1d packages/*`; do echo -n $dird/; ls $dird | head -1; done
+    // OR
+    // for dird in `ls -R -1d packages/*`; do echo \"$dird/`ls $dird | head -1`\",; done
+    let dataFiles = [
+        "packages/ext_26_1_L_A/ext_26_1_L_A20200830T040915.csv",
+        "packages/ext_26_1_L_D/ext_26_1_L_D20200830T040915.csv",
+        "packages/ext_26_1_R_B/ext_26_1_R_B20200830T040914.csv",
+        "packages/ext_26_1_R_C/ext_26_1_R_C20200830T040914.csv",
+        "packages/ext_26_2_L_A/ext_26_2_L_A20200830T040911.csv",
+        "packages/ext_26_2_L_D/ext_26_2_L_D20200830T040911.csv",
+        "packages/ext_26_2_R_B/ext_26_2_R_B20200830T040912.csv",
+        "packages/ext_26_2_R_C/ext_26_2_R_C20200830T040912.csv",
+    ];
+
+    var numerics = ["magnitude", "raw_magnitude", "amplitude"];
+    function isNumber(n) {
+        return !isNaN(parseFloat(n)) && isFinite(n);
+    }
+    let epaochParse = d3.timeParse("%j days %H:%M:%s.%L000000");
+    function dataconverter(d){
+        // coerce numbers to floats, empty strings to null
+        numerics.forEach(function (dim) {
+                d[dim] = isNumber(d[dim]) ? parseFloat(d[dim]) : null;
+        })
+        // d.EpochDate = epochParse(d.package_time) // for a date object
+        DHMS = d.package_time.split(/ days |:/).map(parseFloat); // array of time elements
+        d.ptime_ms = ((((DHMS[0] * 24) + DHMS[1]) * 60 + DHMS[2]) * 60 + DHMS[3]) * 1000;
+        d.ptime_DMHS = DHMS
+        return d;
+    }
+var c1;
+    let allPromises = dataFiles.map( fn => d3.csv(fn, dataconverter))
+    Promise.all(allPromises).then(allData => {
+        // file data now loaded
+        // deal with dataFile zero as example code
+
+        // construct the crossfilters
+        let threadCF = allData.map(crossfilter)
+
+        // sample code - set up for crossfilter #0
+        // threadCF[0].onchange()
+
+        let crawlup = crawler([700,200]) // our crawler factory
+
+        let svg1 = d3.select("body").append("p").style("margin-left", "50px")
+            .append("svg").attr("width", 900).attr("height", 2000) // our svg
+
+        // crawl region for one datset
+        // let crawlg = crawlup(svg1)
+
+        let crawlgs = threadCF.map((cxfilter,i) => {
+            let cg = crawlup(svg1);
+            cfcrawlsetup( cg, cxfilter, yoffset = i*250 )
+            cxfilter.onChange(eventType => {
+                console.log('data changed:', eventType);
+                cfRedraw( cg, cxfilter )        
+                })
+            return cg;
+
+        })
+
+
+        let dimensionMagnitudes = threadCF.map(cxfilter => cxfilter.dimension("magnitude"))
+
+        d3.select("body").append("button").text("Change Filter")
+            .on("click", d => {                
+                console.log(d)
+                if( dimensionMagnitudes[0].hasCurrentFilter())
+                    dimensionMagnitudes.forEach(d => d.filterAll()) // remove filters
+                else
+                    dimensionMagnitudes.forEach( dim => dim.filterRange([800,1000]))
+            })
+
+        // onchange for the dataset 0
+
+
+
+        crawlup.cycle();
+        c1 = crawlup;
+
+    })
+    
+
+    function cfcrawlsetup( crawlg, cf, yoffset = 100, xoffset = 100 ){
+        crawlg.transform(`translate(${xoffset},${yoffset})`)
+        crawlg.crawlRect.attr("fill", "lightgrey").style("display","block" )
+
+        // figure out scaling for amplitude
+
+        let yscale = d3.scaleLinear()
+                            .domain(d3.extent(cf.all(), d => d.amplitude))
+                            .range([0,200])
+
+        crawlg.append("g").attr("id", "ampcircles")
+           .selectAll("circle")
+            .data(cf.all())
+            .enter().append("circle")
+            .attr("fill", "red")
+            .attr("cx", (d, i) => d.ptime_ms / 200 * 50) // should depend on date
+            .attr("cy", d => yscale(d.amplitude))
+            .attr("r", 5)
+
+        // should not use d3 axis because the x-extent of the range is not fixed
+        let xCount =  cf.all().length
+        let xMax = cf.all()[xCount-1].ptime_ms
+        crawlg.append("g").attr("transform", "translate(0,180)")
+            .call(d3.axisBottom().scale(d3.scaleLinear()
+                .range([0, xMax / 200 * 50]).domain([0, xMax])).ticks(xCount))       
+    }
+
+    function cfRedraw( crawlg, cf ){
+        let cselect = crawlg.select("#ampcircles")
+            .selectAll("circle")
+            // .data(cf.allFiltered) 
+            // recode this.. bad dependency that data set has not changed
+            .attr("fill", (d,i) => cf.isElementFiltered(i) ? "red" : "blue")
+
+    }
+</script>
+<style>
+    body {
+        font-size: 13px;
+        font-family: sans-serif;
+    }
+</style>
