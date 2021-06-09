@@ -56,6 +56,7 @@ var c1;
         // file data now loaded
         // deal with dataFile zero as example code
 
+        allData = allData.slice(0,2)
         // construct the crossfilters
         let threadCF = allData.map(crossfilter)
         
@@ -102,7 +103,7 @@ var c1;
 
 
 
-        crawlup.cycle();
+        // crawlup.cycle();
         c1 = crawlup;
 
     })
@@ -144,10 +145,17 @@ var c1;
 
     }
 
+    var popupDiv
+    window.addEventListener('load', (event) => {
+        popupDiv = d3.select("body").append("div").attr("id","popupDiv");
+        // console.log(popupDiv, "ppp")
+    });
+    
 
     function boxplot(table, svg, yoffset, i, xoffset = 0) {    
             // if (i != 6)
             // return
+
 
             let dataList = []
             let dataMap = new Map()
@@ -221,18 +229,26 @@ var c1;
                 .attr("stroke", "black")
                 .style("fill", "#69b3a2")
                 .on("mouseover", function(event,d) {
-                div.transition()
-                    .duration(200)
-                    .style("opacity", .9);
-                div.html("Q3 : " + d.q3  + "<br/> Median: " + d.median + "<br/> Q1: " + d.q1)
-                    .style("left", (event.pageX) + "px")
-                    .style("top", (event.pageY - 28) + "px");
+                    d3.select(this)
+                        .select("title")
+                        .html("Q3 : " + d.q3  + "<br/> Median: " + d.median + "<br/> Q1: " + d.q1)
                 })
-                .on("mouseout", function(d) {
-                div.transition()
-                    .duration(500)
-                    .style("opacity", 0);
-                });
+                .append("title", "no title yet")
+
+                // .on("mouseover", function(event,d) {
+                //     console.log(event,d)
+                // div.transition()
+                //     .duration(200)
+                //     .style("opacity", .9);
+                // div.html("Q3 : " + d.q3  + "<br/> Median: " + d.median + "<br/> Q1: " + d.q1)
+                //     .style("left", (event.pageX) + "px")
+                //     .style("top", (event.pageY - 28) + "px");
+                // })
+                // .on("mouseout", function(d) {
+                // div.transition()
+                //     .duration(500)
+                //     .style("opacity", 0);
+                // });
 
             svg.append("g")
                 .attr("transform", "translate("+ xoffset + "," + Number(yoffset) + ")")
@@ -247,17 +263,18 @@ var c1;
                 .attr("stroke", "black")
                 .style("fill", "darkseagreen")
                 .on("mouseover", function(event,d) {
-                div.transition()
-                    .duration(200)
-                    .style("opacity", .9);
-                div.html("Q3 : " + d.q3 + "<br/> Median: " + d.median + "<br/> Q1: " + d.q1)
-                    .style("left", (event.pageX) + "px")
-                    .style("top", (event.pageY - 28) + "px");
-                })
+                    console.log(event,d)
+                    popupDiv.transition()
+                     .duration(200)
+                     .style("opacity", .9);
+                    popupDiv.html("Q3 : " + d.q3 + "<br/> Median: " + d.median + "<br/> Q1: " + d.q1)
+                         .style("left", (event.pageX) + "px")
+                         .style("top", (event.pageY - 28) + "px");
+                 })
                 .on("mouseout", function(d) {
-                div.transition()
-                    .duration(500)
-                    .style("opacity", 0);
+                    popupDiv.transition()
+                     .duration(500)
+                     .style("opacity", 0);
                 });
 
             // Show the median
@@ -272,19 +289,19 @@ var c1;
                 .attr("y1", function(d){return(y(d.median))})
                 .attr("y2", function(d){return(y(d.median))})
                 .attr("stroke", "black")
-                .on("mouseover", function(event,d) {
-                div.transition()
-                    .duration(200)
-                    .style("opacity", .9);
-                div.html("Median: " + d.median)
-                    .style("left", (event.pageX) + "px")
-                    .style("top", (event.pageY - 28) + "px");
-                })
-                .on("mouseout", function(d) {
-                div.transition()
-                    .duration(500)
-                    .style("opacity", 0);
-                });
+                // .on("mouseover", function(event,d) {
+                // div.transition()
+                //     .duration(200)
+                //     .style("opacity", .9);
+                // div.html("Median: " + d.median)
+                //     .style("left", (event.pageX) + "px")
+                //     .style("top", (event.pageY - 28) + "px");
+                // })
+                // .on("mouseout", function(d) {
+                // div.transition()
+                //     .duration(500)
+                //     .style("opacity", 0);
+                // });
                     // Show the median
             svg.append("g")
                 .attr("transform", "translate("+ xoffset + "," + Number(yoffset) + ")")
@@ -297,19 +314,19 @@ var c1;
                 .attr("y1", function(d){return(y(d.max))})
                 .attr("y2", function(d){return(y(d.max))})
                 .attr("stroke", "black")
-                .on("mouseover", function(event,d) {
-                div.transition()
-                    .duration(200)
-                    .style("opacity", .9);
-                div.html("Max: " + d.max)
-                    .style("left", (event.pageX) + "px")
-                    .style("top", (event.pageY - 28) + "px");
-                })
-                .on("mouseout", function(d) {
-                div.transition()
-                    .duration(500)
-                    .style("opacity", 0);
-                });
+                // .on("mouseover", function(event,d) {
+                // div.transition()
+                //     .duration(200)
+                //     .style("opacity", .9);
+                // div.html("Max: " + d.max)
+                //     .style("left", (event.pageX) + "px")
+                //     .style("top", (event.pageY - 28) + "px");
+                // })
+                // .on("mouseout", function(d) {
+                // div.transition()
+                //     .duration(500)
+                //     .style("opacity", 0);
+                // });
 
             svg.append("g")
                 .attr("transform", "translate("+ xoffset + "," + Number(yoffset) + ")")
@@ -322,19 +339,19 @@ var c1;
                 .attr("y1", function(d){return(y(d.min))})
                 .attr("y2", function(d){return(y(d.min))})
                 .attr("stroke", "black")
-                .on("mouseover", function(event,d) {
-                div.transition()
-                    .duration(200)
-                    .style("opacity", .9);
-                div.html("Min: " + d.min)
-                    .style("left", (event.pageX) + "px")
-                    .style("top", (event.pageY - 28) + "px");
-                })
-                .on("mouseout", function(d) {
-                div.transition()
-                    .duration(500)
-                    .style("opacity", 0);
-                });
+                // .on("mouseover", function(event,d) {
+                // div.transition()
+                //     .duration(200)
+                //     .style("opacity", .9);
+                // div.html("Min: " + d.min)
+                //     .style("left", (event.pageX) + "px")
+                //     .style("top", (event.pageY - 28) + "px");
+                // })
+                // .on("mouseout", function(d) {
+                // div.transition()
+                //     .duration(500)
+                //     .style("opacity", 0);
+                // });
     }
 </script>
 <style>
@@ -347,4 +364,9 @@ var c1;
         /* border: solid 1px blue; */
         margin: 50px;
     }
+
+    #popupDiv {
+        position: absolute
+    }
 </style>
+<body></body>

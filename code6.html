@@ -67,7 +67,8 @@ var c1;
         // let crawlg = crawlup(svg1)
 
         let crawlgs = threadCF.slice(0,3).map((cxfilter,i) => {
-            let cg = crawlup(svg1);
+            let cg = crawlup(svg1); // a new crawler group
+            
             cfcrawlsetup( cg, cxfilter, yoffset = i*250 )
             cxfilter.onChange(eventType => {
                 console.log('data changed:', eventType);
@@ -84,7 +85,7 @@ var c1;
             .on("click", d => {                
                 console.log(d)
                 if( dimensionMagnitudes[0].hasCurrentFilter())
-                    dimensionMagnitudes.forEach(filterAll) // remove filters
+                    dimensionMagnitudes.forEach(d => d.filterAll()) // remove filters
                 else
                     dimensionMagnitudes.forEach( dim => dim.filterRange([800,1000]))
             })
@@ -121,9 +122,9 @@ var c1;
         // should not use d3 axis because the x-extent of the range is not fixed
         let xCount =  cf.all().length
         let xMax = cf.all()[xCount-1].ptime_ms
-        crawlg.append("g").attr("transform", "translate(0,180)")
-            .call(d3.axisBottom().scale(d3.scaleLinear()
-                .range([0, xMax / 200 * 50]).domain([0, xMax])).ticks(xCount))       
+        //crawlg.append("g").attr("transform", "translate(0,180)")
+           // .call(d3.axisBottom().scale(d3.scaleLinear()
+            //    .range([0, xMax / 200 * 50]).domain([0, xMax])).ticks(xCount))       
     }
 
     function cfRedraw( crawlg, cf ){
