@@ -2,7 +2,7 @@
 <script src="https://d3js.org/d3.v6.min.js"></script>
 <script src="crossfilter.js"></script>
 <script src="crawler.js"></script>
-
+<script src="project.js"></script>
 <script>
     let packageNames = [
         "ext_26_1_L_A",
@@ -78,7 +78,7 @@ var c1;
 
             cfcrawlsetup( cg, cxfilter, yoffset = i*250 )
             boxplot(allData[i], svg, yoffset = i*250, i)
-            console.log(i)
+            console.log("index", i)
 
             cxfilter.onChange(eventType => {
                 console.log('data changed:', eventType);
