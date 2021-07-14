@@ -56,7 +56,7 @@ var c1;
         // file data now loaded
         // deal with dataFile zero as example code
 
-        allData = allData.slice(0,2)
+        allData = allData.slice(0,2) //comment this line to see all the data stream
         // construct the crossfilters
         let threadCF = allData.map(crossfilter)
         
@@ -103,7 +103,7 @@ var c1;
 
 
 
-        // crawlup.cycle();
+        crawlup.cycle();
         c1 = crawlup;
 
     })
@@ -215,7 +215,7 @@ var c1;
                 .attr("y2", function(d){return(y(d.max))})
                 .attr("stroke", "black")
                 
-
+            //q1
             svg.append("g")
                 .attr("transform", "translate("+ xoffset + "," + Number(yoffset) + ")")
                 .selectAll("boxes")
@@ -229,27 +229,21 @@ var c1;
                 .attr("stroke", "black")
                 .style("fill", "#69b3a2")
                 .on("mouseover", function(event,d) {
-                    d3.select(this)
-                        .select("title")
-                        .html("Q3 : " + d.q3  + "<br/> Median: " + d.median + "<br/> Q1: " + d.q1)
+                    console.log(event,d)
+                popupDiv.transition()
+                    .duration(200)
+                    .style("opacity", .9);
+                popupDiv.html("Q3 : " + d.q3  + "<br/> Median: " + d.median + "<br/> Q1: " + d.q1)
+                    .style("left", (event.pageX) + "px")
+                    .style("top", (event.pageY - 28) + "px");
                 })
-                .append("title", "no title yet")
+                .on("mouseout", function(d) {
+                popupDiv.transition()
+                    .duration(500)
+                    .style("opacity", 0);
+                });
 
-                // .on("mouseover", function(event,d) {
-                //     console.log(event,d)
-                // div.transition()
-                //     .duration(200)
-                //     .style("opacity", .9);
-                // div.html("Q3 : " + d.q3  + "<br/> Median: " + d.median + "<br/> Q1: " + d.q1)
-                //     .style("left", (event.pageX) + "px")
-                //     .style("top", (event.pageY - 28) + "px");
-                // })
-                // .on("mouseout", function(d) {
-                // div.transition()
-                //     .duration(500)
-                //     .style("opacity", 0);
-                // });
-
+                //q3
             svg.append("g")
                 .attr("transform", "translate("+ xoffset + "," + Number(yoffset) + ")")
                 .selectAll("boxes")
@@ -289,20 +283,21 @@ var c1;
                 .attr("y1", function(d){return(y(d.median))})
                 .attr("y2", function(d){return(y(d.median))})
                 .attr("stroke", "black")
-                // .on("mouseover", function(event,d) {
-                // div.transition()
-                //     .duration(200)
-                //     .style("opacity", .9);
-                // div.html("Median: " + d.median)
-                //     .style("left", (event.pageX) + "px")
-                //     .style("top", (event.pageY - 28) + "px");
-                // })
-                // .on("mouseout", function(d) {
-                // div.transition()
-                //     .duration(500)
-                //     .style("opacity", 0);
-                // });
-                    // Show the median
+                .on("mouseover", function(event,d) {
+                popupDiv.transition()
+                    .duration(200)
+                    .style("opacity", .9);
+                popupDiv.html("Median: " + d.median)
+                    .style("left", (event.pageX) + "px")
+                    .style("top", (event.pageY - 28) + "px");
+                })
+                .on("mouseout", function(d) {
+                popupDiv.transition()
+                    .duration(500)
+                    .style("opacity", 0);
+                });
+
+                    // Show the max
             svg.append("g")
                 .attr("transform", "translate("+ xoffset + "," + Number(yoffset) + ")")
                 .selectAll("maxLines")
@@ -314,20 +309,21 @@ var c1;
                 .attr("y1", function(d){return(y(d.max))})
                 .attr("y2", function(d){return(y(d.max))})
                 .attr("stroke", "black")
-                // .on("mouseover", function(event,d) {
-                // div.transition()
-                //     .duration(200)
-                //     .style("opacity", .9);
-                // div.html("Max: " + d.max)
-                //     .style("left", (event.pageX) + "px")
-                //     .style("top", (event.pageY - 28) + "px");
-                // })
-                // .on("mouseout", function(d) {
-                // div.transition()
-                //     .duration(500)
-                //     .style("opacity", 0);
-                // });
+                .on("mouseover", function(event,d) {
+                    popupDiv.transition()
+                    .duration(200)
+                    .style("opacity", .9);
+                    popupDiv.html("Max: " + d.max)
+                    .style("left", (event.pageX) + "px")
+                    .style("top", (event.pageY - 28) + "px");
+                })
+                .on("mouseout", function(d) {
+                    popupDiv.transition()
+                    .duration(500)
+                    .style("opacity", 0);
+                });
 
+                //min
             svg.append("g")
                 .attr("transform", "translate("+ xoffset + "," + Number(yoffset) + ")")
                 .selectAll("minLines")
@@ -339,19 +335,19 @@ var c1;
                 .attr("y1", function(d){return(y(d.min))})
                 .attr("y2", function(d){return(y(d.min))})
                 .attr("stroke", "black")
-                // .on("mouseover", function(event,d) {
-                // div.transition()
-                //     .duration(200)
-                //     .style("opacity", .9);
-                // div.html("Min: " + d.min)
-                //     .style("left", (event.pageX) + "px")
-                //     .style("top", (event.pageY - 28) + "px");
-                // })
-                // .on("mouseout", function(d) {
-                // div.transition()
-                //     .duration(500)
-                //     .style("opacity", 0);
-                // });
+                .on("mouseover", function(event,d) {
+                popupDiv.transition()
+                    .duration(200)
+                    .style("opacity", .9);
+                popupDiv.html("Min: " + d.min)
+                    .style("left", (event.pageX) + "px")
+                    .style("top", (event.pageY - 28) + "px");
+                })
+                .on("mouseout", function(d) {
+                popupDiv.transition()
+                    .duration(500)
+                    .style("opacity", 0);
+                });
     }
 </script>
 <style>
@@ -366,7 +362,15 @@ var c1;
     }
 
     #popupDiv {
-        position: absolute
+        position: absolute;
+        text-align: center;
+        padding: 2px;
+        font: 12px sans-serif;
+        background: lightskyblue;
+        border: 0px;
+        border-radius: 8px;
+        pointer-events: none;
     }
 </style>
 <body></body>
+<!--https://bl.ocks.org/eggchul/raw/8aad109e789d3497ae3d211c9b9804ca/?raw=true -->
