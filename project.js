@@ -46,6 +46,7 @@
         return d;
     }
 var c1;
+var streamIter;
     let allPromises = dataFiles.map( fn => d3.csv(fn, dataconverter))
     Promise.all(allPromises).then(allData => {
         // file data now loaded
@@ -86,11 +87,15 @@ var c1;
 
         })
         
-        for(let datai=0; datai<allData[0].length;datai++){
+        // set up a generator function to simulate a data stream
+        streamIter = (function* (){
+            for(let datai=0; datai<allData[0].length;datai++){
             threadCF.forEach( (cf, cfnumber) =>
                      cf.add(allData[cfnumber].slice(datai,datai+1)))
-                
-        }
+                     yield datai
+
+            }   
+        })() 
 
 
         let dimensionMagnitudes = threadCF.map(cxfilter => cxfilter.dimension("magnitude"))
@@ -104,7 +109,8 @@ var c1;
             })
 
         // onchange for the dataset 0
-
+        d3.select("body").append("button").text("Simuate streamed value")
+            .on("click", () => streamIter.next());
 
 
         // crawlup.cycle();
