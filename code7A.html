@@ -53,7 +53,7 @@
         // file data now loaded
 
         // construct the crossfilters
-        let threadCF = allData.slice(0,2).map(() => crossfilter()) // slice to 2 for testing
+        let threadCF = allData.slice(0,4).map(() => crossfilter()) // slice to 2 for testing
 
         // create stream simulator from allData
         // set up a generator function to simulate a data stream from the read data
@@ -89,17 +89,14 @@
 
         })
 
-       /* tc.registry.forEach((cf,i) => {
-            cfcrawlsetup( crawlgs[i], cf, i)
-        })
-        */
         tc.onNewData( () => {
             console.log("[]==>" , tc.datalength)
             // all cf's have advanced
             // do the drawing here
             tc.registry.forEach( (cf, i) => {
                 console.log("redraw the cf", i) 
-                reDraw( cf, crawlgs[i], tc.datalength, 14 )
+                reDraw( cf, crawlgs[i], Math.max(0,tc.datalength-14), tc.datalength )
+        
             })
             crawlup.crawlto(tc.datalength -1)
         })
@@ -111,23 +108,30 @@
     let yscale = d3.scaleLinear()
         .domain([300,600]) // good for amplitude?
         .range([0, 200])
-    function reDraw( cf, selection, hidrawi, iwidth){
+
+    function reDraw( cf, selection, lowdrawi, hidrawi ){
         // draw into the given d3 selection between given indicies
         // of cf. Basically a draw with the limits given.
-        console.log("redraw", cf, selection, hidrawi, iwidth )
-        let lowdrawi = Math.max(0,hidrawi-iwidth)
-        let s = selection.select("#ampcircles")
+        // limits should be anything that might tansition
+        //  into the clipped window. Including rewind sweeping.
+        console.log("redraw", cf, selection, lowdrawi, hidrawi )
+        // let lowdrawi = Math.max(0,hidrawi-iwidth)
+        let s = selection.select("#ampcircles") // should keep the old selection
             .selectAll("circle")
-            .data(cf.all()) // keyed by cf index
-            .enter()
+            .data(cf.all()) // keyed by cf index. SHould use cf filter instead?
+        s   .enter()
             .filter((d,i) => i < hidrawi && i >= lowdrawi)
             .append("circle")
             .attr("fill", "red")
             .attr("cx", (d, i) => d.ptime_ms / 200 * 50) // should depend on date
             .attr("cy", d => yscale(d.amplitude))
             .attr("r", 5)
-            //.each(console.log)
-        //sconsole.log("filtered", s.size(), s)
+        // s   .each((d,i) => console.log("spotting", i))
+        //     .filter((d,i) => i < lowdrawi)
+        //     .each((d,i) => console.log("removing",i))
+        //     .remove()
+
+
     }
      function cfcrawlsetup(crawlg, cf, yoffset = 100, xoffset = 100) {
         crawlg.transform(`translate(${xoffset},${yoffset})`)

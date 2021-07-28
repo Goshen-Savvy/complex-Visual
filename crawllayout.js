@@ -74,30 +74,8 @@ tracklayout = function(crawler){ // problem what about multiple cf's? they have 
     }  
     return layout
 }
-/*
-cycle = function() // cycle when next ith item is avaailbel for all registered cf's
 
-reset = function(index) // reset position to index. maybe with override if not available on all crawls/tracks.
-
-onadvance(callback) // called when a window advances (or changes position)
-
-index = top index in window 
-index-iwidth last index in crawl window
-[index-iwidth, index+1] range we need to draw since we scroll left.
-[0, index] values crawl summary should be based upon. 
-
-crawllayout.
-*/
 crawlfilter = function(d){
     xf = Object.create(new crossfilter(d))
     return xf
 }
-
-/** 
-crawlfilter = function(d){
-    .prototype = new crossfilter(d)
-    return this
-}// this.crawlfilter = crossfilter
-
-crawlfilter.prototype
-*/
