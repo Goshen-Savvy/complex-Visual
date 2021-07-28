@@ -38,32 +38,35 @@ function crawler([width, height], indexpoints = 20) {
         inside.transform = tf => outside.attr("transform", tf) // added to selection object
         crawl.reset() // depends on inside_g being set
         return inside
-    } 
+    }
 
     let tickcount = 0;
     function settrans(selection) {
         selection.attr("transform", `translate(${width - tickcount * indexlength},0)`)
     }
 
+    // crawl geometry
+    crawl.capacity = indexpoints
     // bounds of the translated clipped region in its own co-ordinates
     // nb this won;t be valid during transitions - almost always??? 
     // sine we are transitioning to this region - same for all .
-    crawl.bounds = function(){
-        return [tickcount * indexlength - width, tickcount * indexlength ]
+    crawl.bounds = function () {
+        return [tickcount * indexlength - width, tickcount * indexlength]
     }
     // can we get the actual transform value? during transitions?
 
-    crawl.cycle = function (duration = 1750) {
+    crawl.cycle = function (duration = 1000) {
         function cycler() {
-            tickcount++;
+            if( this == inside_g.nodes()[0]) tickcount++;
+            // console.log(tickcount, this)
             d3.active(this)
                 .call(settrans)
-                .transition().on("start", cycler)
+                .transition().on("start", cycler) // delay chain until start
         }
         inside_g.transition()
-            .duration(duration)
-            .ease(d3.easeLinear)
-            .on("start", cycler)
+                .duration(duration)
+                .ease(d3.easeLinear)
+                .on("start", cycler) // called for each g 
     }
 
     crawl.stop = function () {
@@ -73,14 +76,14 @@ function crawler([width, height], indexpoints = 20) {
     }
 
     // advance to this point in a single transformation, for smooth single stepping
-    
-/** TODO: tick/index points should be index configurable to match the number
-    of points requested. this could speed up the cycling as well with fewer calls 
-*/
-    crawl.crawlto = function(index, duration = 1750) {
-        if(index < tickcount) return ; // can't reverse at the moment
 
-        let allduration = duration*Math.abs(index-tickcount) // this is a const per crawler
+    /** TODO: tick/index points should be index configurable to match the number
+        of points requested. this could speed up the cycling as well with fewer calls 
+    */
+    crawl.crawlto = function (index, duration = 1750) {
+        if (index < tickcount) return; // can't reverse at the moment
+
+        let allduration = duration * Math.abs(index - tickcount) // this is a const per crawler
         console.log(allduration)
         tickcount = index
 
@@ -94,6 +97,15 @@ function crawler([width, height], indexpoints = 20) {
         tickcount = clock
         settrans(inside_g)
     }
+
+    // get/set index/clock
+    crawl.clockindex = function(tick = null) {
+        if(tick){
+            tickcount = tick
+            settrans(inside_g)
+        }
+        return tickcount
+    }    
     return crawl
 }
 
