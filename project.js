@@ -62,8 +62,6 @@ var streamIter;
         let crawlup = crawler([700,200]) // our crawler factory
 
         let svg = d3.select("body").append("svg").attr("width", 200).attr("height", allData.length * 250 + 10) // our svg
-
-
         let svg1 = d3.select("body").append("svg").attr("width", 900).attr("height", allData.length * 250 + 10) // our svg
 
         // crawl region for one datset
@@ -72,14 +70,13 @@ var streamIter;
         let crawlgs = threadCF.slice(0,allData.length).map((cxfilter,i) => {
             let cg = crawlup(svg1);
 
-            // cfcrawlsetup( cg, cxfilter, yoffset = i*250 )
+            cfcrawlsetup( cg, cxfilter, yoffset = i*250 )
             boxplot(allData[i], svg, yoffset = i*250, i)
             console.log("index", i)
 
             cxfilter.onChange(eventType => {
                 console.log('data changed:', eventType);
-                if(eventType == "filtered") cfRedraw( cg, cxfilter )
-                if(eventType == "dataAdded") console.log("data added")     
+                cfRedraw( cg, cxfilter, svg, i)        
                 })
             return cg;
 
@@ -92,13 +89,12 @@ var streamIter;
             for(let datai=0; datai<allData[0].length;datai++){
             threadCF.forEach( (cf, cfnumber) =>
                      cf.add(allData[cfnumber].slice(datai,datai+1)))
-                     yield datai
-
+                     yield datai            
             }   
         })() 
 
 
-        let dimensionMagnitudes = threadCF.map(cxfilter => cxfilter.dimension("magnitude"))
+        let dimensionMagnitudes = threadCF.map((cxfilter, index) => cxfilter.dimension("magnitude"))
         d3.select("body").append("button").text("Change Filter")
             .on("click", d => {                
                 console.log(d)
@@ -110,10 +106,12 @@ var streamIter;
 
         // onchange for the dataset 0
         d3.select("body").append("button").text("Simuate streamed value")
-            .on("click", () => streamIter.next());
+            .on("click", () => {
+                console.log("Generated Data ",streamIter.next().value)
+            });
 
 
-        // crawlup.cycle();
+        crawlup.cycle();
         c1 = crawlup;
 
     })
@@ -140,18 +138,24 @@ var streamIter;
 
         // should not use d3 axis because the x-extent of the range is not fixed
         let xCount =  cf.all().length
-        let xMax = cf.all()[xCount-1].ptime_ms
-        crawlg.append("g").attr("transform", "translate(0,180)")
-            .call(d3.axisBottom().scale(d3.scaleLinear()
-                .range([0, xMax / 200 * 50]).domain([0, xMax])).ticks(xCount))       
+        //let xMax = cf.all()[xCount-1].ptime_ms
+        // crawlg.append("g").attr("transform", "translate(0,180)")
+        //     .call(d3.axisBottom().scale(d3.scaleLinear()
+        //         .range([0, xMax / 200 * 50]).domain([0, xMax])).ticks(xCount))       
     }
 
-    function cfRedraw( crawlg, cf ){
-        let cselect = crawlg.select("#ampcircles")
-            .selectAll("circle")
+    function cfRedraw(crawlg, cf, svg, i){
+        console.log(`Size of CF: `,cf.size())
+        if (cf.size() % 4 === 0)
+        {
+            boxplot(cf.all(), svg, yoffset = i*250, i)
+        }
+
+        //let cselect = crawlg.select("#ampcircles")
+            //.selectAll("circle")
             // .data(cf.allFiltered) 
             // recode this.. bad dependency that data set has not changed
-            .attr("fill", (d,i) => cf.isElementFiltered(i) ? "red" : "blue")
+            //.attr("fill", (d,i) => cf.isElementFiltered(i) ? "green" : "brown")
 
     }
 
@@ -163,203 +167,201 @@ var streamIter;
     
 
     function boxplot(table, svg, yoffset, i, xoffset = 0) {    
-            // if (i != 6)
-            // return
+        // if (i != 6)
+        // return
 
 
-            let dataList = []
-            let dataMap = new Map()
-            let code = table[0]['threadline']
-     
-            for ( var i = 0; i < table.length; i ++) {
-                let attribute = Number(table[i]['amplitude'])
-                   
-                dataMap[code] = dataMap[code] || []
-                dataMap[code].push(attribute)
-            }
+        let dataList = []
+        let dataMap = new Map()
+        let code = table[0]['threadline']
+ 
+        for ( var i = 0; i < table.length; i ++) {
+            let attribute = Number(table[i]['amplitude'])
+               
+            dataMap[code] = dataMap[code] || []
+            dataMap[code].push(attribute)
+        }
 
-            let min = d3.min(dataMap[code])
-            let max =  d3.max(dataMap[code])
+        let min = d3.min(dataMap[code])
+        let max =  d3.max(dataMap[code])
 
-            dataList.push({
-                code: table[0]['threadline'],
-                q1: d3.quantile( dataMap[code], 0.25),
-                q3: d3.quantile(dataMap[code], 0.75),
-                median: d3.quantile(dataMap[code], 0.5),
-                max : d3.max(dataMap[code]),
-                min : d3.min(dataMap[code]),
+        dataList.push({
+            code: table[0]['threadline'],
+            q1: d3.quantile( dataMap[code], 0.25),
+            q3: d3.quantile(dataMap[code], 0.75),
+            median: d3.quantile(dataMap[code], 0.5),
+            max : d3.max(dataMap[code]),
+            min : d3.min(dataMap[code]),
+        })
+
+        svg.append("rect")
+            .attr("x", xoffset)
+            .attr("y", yoffset)
+            .attr("width", width)
+            .attr("height", height)
+            .attr("fill", "lightgrey")
+
+        // Add X axis
+        var x = d3.scaleBand()
+                    .domain(table[0]['threadline'])
+                    .range([ 0, width])
+                    .padding(0.5);
+
+
+        svg.append("g")
+                .attr("transform", "translate("+ xoffset + "," + Number(yoffset+height) + ")")
+                .call(d3.axisBottom(x));
+
+        // Add Y axis
+        var y = d3.scaleLinear()
+                .domain([min, max])
+                .range([ height, 0]);
+
+        svg.append("g")
+            .attr("transform", "translate("+ xoffset + "," + Number(yoffset) + ")")
+            .selectAll("vertLines")
+            .data(dataList)
+            .enter()
+            .append("line")
+            .attr("x1", function(d){return(x(d.code) + x.bandwidth()/2)})
+            .attr("x2", function(d){return(x(d.code) + x.bandwidth()/2)})
+            .attr("y1", function(d){return(y(d.min))})
+            .attr("y2", function(d){return(y(d.max))})
+            .attr("stroke", "black")
+            
+        //q1
+        svg.append("g")
+            .attr("transform", "translate("+ xoffset + "," + Number(yoffset) + ")")
+            .selectAll("boxes")
+            .data(dataList)
+            .enter()
+            .append("rect")
+            .attr("x", function(d){return(x(d.code))})
+            .attr("y", function(d){return(y(d.median))})
+            .attr("height", function(d){return(y(d.q1)-y(d.median))})
+            .attr("width", x.bandwidth() )
+            .attr("stroke", "black")
+            .style("fill", "#69b3a2")
+            .on("mouseover", function(event,d) {
+                console.log(event,d)
+            popupDiv.transition()
+                .duration(200)
+                .style("opacity", .9);
+            popupDiv.html("Q3 : " + d.q3  + "<br/> Median: " + d.median + "<br/> Q1: " + d.q1)
+                .style("left", (event.pageX) + "px")
+                .style("top", (event.pageY - 28) + "px");
             })
+            .on("mouseout", function(d) {
+            popupDiv.transition()
+                .duration(500)
+                .style("opacity", 0);
+            });
 
-		    svg.append("rect")
-				.attr("x", xoffset)
-				.attr("y", yoffset)
-				.attr("width", width)
-				.attr("height", height)
-                .attr("fill", "lightgrey")
+            //q3
+        svg.append("g")
+            .attr("transform", "translate("+ xoffset + "," + Number(yoffset) + ")")
+            .selectAll("boxes")
+            .data(dataList)
+            .enter()
+            .append("rect")
+            .attr("x", function(d){return(x(d.code))})
+            .attr("y", function(d){return(y(d.q3))})
+            .attr("height", function(d){return(y(d.median)-y(d.q3))})
+            .attr("width", x.bandwidth() )
+            .attr("stroke", "black")
+            .style("fill", "darkseagreen")
+            .on("mouseover", function(event,d) {
+                console.log(event,d)
+                popupDiv.transition()
+                 .duration(200)
+                 .style("opacity", .9);
+                popupDiv.html("Q3 : " + d.q3 + "<br/> Median: " + d.median + "<br/> Q1: " + d.q1)
+                     .style("left", (event.pageX) + "px")
+                     .style("top", (event.pageY - 28) + "px");
+             })
+            .on("mouseout", function(d) {
+                popupDiv.transition()
+                 .duration(500)
+                 .style("opacity", 0);
+            });
 
-            // Add X axis
-            var x = d3.scaleBand()
-                        .domain(table[0]['threadline'])
-                        .range([ 0, width])
-                        .padding(0.5);
+        // Show the median
+        svg.append("g")
+            .attr("transform", "translate("+ xoffset + "," + Number(yoffset) + ")")
+            .selectAll("medianLines")
+            .data(dataList)
+            .enter()
+            .append("line")
+            .attr("x1", function(d){return(x(d.code))})
+            .attr("x2", function(d){return(x(d.code) + x.bandwidth())})
+            .attr("y1", function(d){return(y(d.median))})
+            .attr("y2", function(d){return(y(d.median))})
+            .attr("stroke", "black")
+            .on("mouseover", function(event,d) {
+            popupDiv.transition()
+                .duration(200)
+                .style("opacity", .9);
+            popupDiv.html("Median: " + d.median)
+                .style("left", (event.pageX) + "px")
+                .style("top", (event.pageY - 28) + "px");
+            })
+            .on("mouseout", function(d) {
+            popupDiv.transition()
+                .duration(500)
+                .style("opacity", 0);
+            });
 
+                // Show the max
+        svg.append("g")
+            .attr("transform", "translate("+ xoffset + "," + Number(yoffset) + ")")
+            .selectAll("maxLines")
+            .data(dataList)
+            .enter()
+            .append("line")
+            .attr("x1", function(d){return(x(d.code))})
+            .attr("x2", function(d){return(x(d.code) + x.bandwidth())})
+            .attr("y1", function(d){return(y(d.max))})
+            .attr("y2", function(d){return(y(d.max))})
+            .attr("stroke", "black")
+            .on("mouseover", function(event,d) {
+                popupDiv.transition()
+                .duration(200)
+                .style("opacity", .9);
+                popupDiv.html("Max: " + d.max)
+                .style("left", (event.pageX) + "px")
+                .style("top", (event.pageY - 28) + "px");
+            })
+            .on("mouseout", function(d) {
+                popupDiv.transition()
+                .duration(500)
+                .style("opacity", 0);
+            });
 
-            svg.append("g")
-                    .attr("transform", "translate("+ xoffset + "," + Number(yoffset+height) + ")")
-                    .call(d3.axisBottom(x));
-
-            // Add Y axis
-            var y = d3.scaleLinear()
-                    .domain([min, max])
-                    .range([ height, 0]);
-
-            svg.append("g")
-                .attr("transform", "translate("+ xoffset + "," + Number(yoffset) + ")")
-                .selectAll("vertLines")
-                .data(dataList)
-                .enter()
-                .append("line")
-                .attr("x1", function(d){return(x(d.code) + x.bandwidth()/2)})
-                .attr("x2", function(d){return(x(d.code) + x.bandwidth()/2)})
-                .attr("y1", function(d){return(y(d.min))})
-                .attr("y2", function(d){return(y(d.max))})
-                .attr("stroke", "black")
-                
-
-            svg.append("g")
-                .attr("transform", "translate("+ xoffset + "," + Number(yoffset) + ")")
-                .selectAll("boxes")
-                .data(dataList)
-                .enter()
-                .append("rect")
-                .attr("x", function(d){return(x(d.code))})
-                .attr("y", function(d){return(y(d.median))})
-                .attr("height", function(d){return(y(d.q1)-y(d.median))})
-                .attr("width", x.bandwidth() )
-                .attr("stroke", "black")
-                .style("fill", "#69b3a2")
-                .on("mouseover", function(event,d) {
-                    d3.select(this)
-                        .select("title")
-                        .html("Q3 : " + d.q3  + "<br/> Median: " + d.median + "<br/> Q1: " + d.q1)
-                })
-                .append("title", "no title yet")
-
-                // .on("mouseover", function(event,d) {
-                //     console.log(event,d)
-                // div.transition()
-                //     .duration(200)
-                //     .style("opacity", .9);
-                // div.html("Q3 : " + d.q3  + "<br/> Median: " + d.median + "<br/> Q1: " + d.q1)
-                //     .style("left", (event.pageX) + "px")
-                //     .style("top", (event.pageY - 28) + "px");
-                // })
-                // .on("mouseout", function(d) {
-                // div.transition()
-                //     .duration(500)
-                //     .style("opacity", 0);
-                // });
-
-            svg.append("g")
-                .attr("transform", "translate("+ xoffset + "," + Number(yoffset) + ")")
-                .selectAll("boxes")
-                .data(dataList)
-                .enter()
-                .append("rect")
-                .attr("x", function(d){return(x(d.code))})
-                .attr("y", function(d){return(y(d.q3))})
-                .attr("height", function(d){return(y(d.median)-y(d.q3))})
-                .attr("width", x.bandwidth() )
-                .attr("stroke", "black")
-                .style("fill", "darkseagreen")
-                .on("mouseover", function(event,d) {
-                    console.log(event,d)
-                    popupDiv.transition()
-                     .duration(200)
-                     .style("opacity", .9);
-                    popupDiv.html("Q3 : " + d.q3 + "<br/> Median: " + d.median + "<br/> Q1: " + d.q1)
-                         .style("left", (event.pageX) + "px")
-                         .style("top", (event.pageY - 28) + "px");
-                 })
-                .on("mouseout", function(d) {
-                    popupDiv.transition()
-                     .duration(500)
-                     .style("opacity", 0);
-                });
-
-            // Show the median
-            svg.append("g")
-                .attr("transform", "translate("+ xoffset + "," + Number(yoffset) + ")")
-                .selectAll("medianLines")
-                .data(dataList)
-                .enter()
-                .append("line")
-                .attr("x1", function(d){return(x(d.code))})
-                .attr("x2", function(d){return(x(d.code) + x.bandwidth())})
-                .attr("y1", function(d){return(y(d.median))})
-                .attr("y2", function(d){return(y(d.median))})
-                .attr("stroke", "black")
-                // .on("mouseover", function(event,d) {
-                // div.transition()
-                //     .duration(200)
-                //     .style("opacity", .9);
-                // div.html("Median: " + d.median)
-                //     .style("left", (event.pageX) + "px")
-                //     .style("top", (event.pageY - 28) + "px");
-                // })
-                // .on("mouseout", function(d) {
-                // div.transition()
-                //     .duration(500)
-                //     .style("opacity", 0);
-                // });
-                    // Show the median
-            svg.append("g")
-                .attr("transform", "translate("+ xoffset + "," + Number(yoffset) + ")")
-                .selectAll("maxLines")
-                .data(dataList)
-                .enter()
-                .append("line")
-                .attr("x1", function(d){return(x(d.code))})
-                .attr("x2", function(d){return(x(d.code) + x.bandwidth())})
-                .attr("y1", function(d){return(y(d.max))})
-                .attr("y2", function(d){return(y(d.max))})
-                .attr("stroke", "black")
-                // .on("mouseover", function(event,d) {
-                // div.transition()
-                //     .duration(200)
-                //     .style("opacity", .9);
-                // div.html("Max: " + d.max)
-                //     .style("left", (event.pageX) + "px")
-                //     .style("top", (event.pageY - 28) + "px");
-                // })
-                // .on("mouseout", function(d) {
-                // div.transition()
-                //     .duration(500)
-                //     .style("opacity", 0);
-                // });
-
-            svg.append("g")
-                .attr("transform", "translate("+ xoffset + "," + Number(yoffset) + ")")
-                .selectAll("minLines")
-                .data(dataList)
-                .enter()
-                .append("line")
-                .attr("x1", function(d){return(x(d.code))})
-                .attr("x2", function(d){return(x(d.code) + x.bandwidth())})
-                .attr("y1", function(d){return(y(d.min))})
-                .attr("y2", function(d){return(y(d.min))})
-                .attr("stroke", "black")
-                // .on("mouseover", function(event,d) {
-                // div.transition()
-                //     .duration(200)
-                //     .style("opacity", .9);
-                // div.html("Min: " + d.min)
-                //     .style("left", (event.pageX) + "px")
-                //     .style("top", (event.pageY - 28) + "px");
-                // })
-                // .on("mouseout", function(d) {
-                // div.transition()
-                //     .duration(500)
-                //     .style("opacity", 0);
-                // });
+            //min
+        svg.append("g")
+            .attr("transform", "translate("+ xoffset + "," + Number(yoffset) + ")")
+            .selectAll("minLines")
+            .data(dataList)
+            .enter()
+            .append("line")
+            .attr("x1", function(d){return(x(d.code))})
+            .attr("x2", function(d){return(x(d.code) + x.bandwidth())})
+            .attr("y1", function(d){return(y(d.min))})
+            .attr("y2", function(d){return(y(d.min))})
+            .attr("stroke", "black")
+            .on("mouseover", function(event,d) {
+            popupDiv.transition()
+                .duration(200)
+                .style("opacity", .9);
+            popupDiv.html("Min: " + d.min)
+                .style("left", (event.pageX) + "px")
+                .style("top", (event.pageY - 28) + "px");
+            })
+            .on("mouseout", function(d) {
+            popupDiv.transition()
+                .duration(500)
+                .style("opacity", 0);
+            });
     }
+
+
