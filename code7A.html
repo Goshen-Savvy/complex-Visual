@@ -30,7 +30,7 @@
         "packages/ext_26_2_R_B/ext_26_2_R_B20200830T040912.csv",
         "packages/ext_26_2_R_C/ext_26_2_R_C20200830T040912.csv",
     ];
-
+    var svg // fix this hack!
     var numerics = ["magnitude", "raw_magnitude", "amplitude"];
     function isNumber(n) {
         return !isNaN(parseFloat(n)) && isFinite(n);
@@ -67,7 +67,7 @@
             }   
         })()
         // button for streaming
-        d3.select("body").append("button").text("Simuate streamed value")
+        d3.select("body").append("p").append("button").text("Simuate streamed value")
             .on("click", () => streamIter.next());
 
         // our crawler factory. For a 700 wide cralwer, we are going to space them
@@ -75,7 +75,7 @@
         let crawlup = crawler([700, 200], 14)
 
         // svg to draw in
-        let svg = d3.select("body").append("svg").attr("width", 200).attr("height", allData.length * 250 + 10) // our svg
+        svg = d3.select("body").append("svg").attr("width", 200).attr("height", allData.length * 250 + 10) // our svg
         let svg1 = d3.select("body").append("p").style("margin-left", "50px")
             .append("svg").attr("width", 900).attr("height", "1000") // our svg
 
@@ -85,9 +85,9 @@
         let crawlgs = [] // index associates crawlgs with tc registry. Better ideas for this?
         threadCF.map( (cf, i) => {
             crawlgs[i] =  crawlup(svg1)
-            tc.register(cf, crawlgs[i]) // Get rid of 2nd argument - tc should not need this info
+            tc.register(cf) // Get rid of 2nd argument - tc should not need this info
             cfcrawlsetup( crawlgs[i], cf, i * 250) // should initializing be in the tc?
-            boxplot(crawlgs[i], svg, yoffset = i*250, i)
+            // boxplot(cf, svg, yoffset = i*250, i)
         })
 
         tc.onNewData( () => {
@@ -97,7 +97,8 @@
             tc.registry.forEach( (cf, i) => {
                 console.log("redraw the cf", i) 
                 reDraw( cf, crawlgs[i], Math.max(0,tc.datalength-14), tc.datalength )
-        
+                console.log(`Size of CF: `,cf.size())
+                boxplot(cf, svg, yoffset = i*250) 
             })
             crawlup.crawlto(tc.datalength -1)
         })
@@ -132,11 +133,6 @@
         //     .each((d,i) => console.log("removing",i))
         //     .remove()
 
-        console.log(`Size of CF: `,cf.size())
-            if (cf.size() % 4 === 0)
-            {
-                boxplot(cf.all(), svg, yoffset = i*250, i)
-            }
     }
      function cfcrawlsetup(crawlg, cf, yoffset = 100, xoffset = 100) {
         crawlg.transform(`translate(${xoffset},${yoffset})`)
@@ -189,15 +185,6 @@
         //        .range([0, xMax / 200 * 50]).domain([0, xMax])).ticks(xCount))
     }
 
-    function cfRedraw(crawlg, cf) {
-        let cselect = crawlg.select("#ampcircles")
-            .selectAll("circle")
-            // .data(cf.allFiltered) 
-            // recode this.. bad dependency that data set has not changed
-            .attr("fill", (d, i) => cf.isElementFiltered(i) ? "red" : "blue")
-
-    }
-
     var popupDiv
     window.addEventListener('load', (event) => {
         popupDiv = d3.select("body").append("div").attr("id","popupDiv");
@@ -205,11 +192,15 @@
     });
     
 
-    function boxplot(table, svg, yoffset, i, xoffset = 0) {    
+    function boxplot(cf, svg, yoffset, i, xoffset = 0) {    
         // if (i != 6)
         // return
+        const width = 200
+        const height = 200 // thses should be computed to fit the crawl windows
 
-
+        let table = cf.all()
+        console.log("size of cf: ", table.length)
+        if( table.length < 4 ) return
         let dataList = []
         let dataMap = new Map()
         let code = table[0]['threadline']
