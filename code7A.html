@@ -5,21 +5,7 @@
 <script src="crawllayout.js"></script>
 
 <script>
-    let packageNames = [
-        "ext_26_1_L_A",
-        "ext_26_1_L_D",
-        "ext_26_1_R_B",
-        "ext_26_1_R_C",
-        "ext_26_2_L_A",
-        "ext_26_2_L_D",
-        "ext_26_2_R_B",
-        "ext_26_2_R_C",
-
-    ];
-    // listing in bash:
-    // for dird in `ls -R -1d packages/*`; do echo -n $dird/; ls $dird | head -1; done
-    // OR
-    // for dird in `ls -R -1d packages/*`; do echo \"$dird/`ls $dird | head -1`\",; done
+ 
     let dataFiles = [
         "packages/ext_26_1_L_A/ext_26_1_L_A20200830T040915.csv",
         "packages/ext_26_1_L_D/ext_26_1_L_D20200830T040915.csv",
@@ -41,8 +27,8 @@
         numerics.forEach(function (dim) {
             d[dim] = isNumber(d[dim]) ? parseFloat(d[dim]) : null;
         })
-        // d.EpochDate = epochParse(d.package_time) // for a date object
-        DHMS = d.package_time.split(/ days |:/).map(parseFloat); // array of time elements
+    
+        DHMS = d.package_time.split(/ days |:/).map(parseFloat); 
         d.ptime_ms = ((((DHMS[0] * 24) + DHMS[1]) * 60 + DHMS[2]) * 60 + DHMS[3]) * 1000;
         d.ptime_DMHS = DHMS
         return d;
@@ -50,50 +36,52 @@
     var c1, streamIter;
     let allPromises = dataFiles.map(fn => d3.csv(fn, dataconverter))
     Promise.all(allPromises).then(allData => {
-        // file data now loaded
 
         // construct the crossfilters
-        let threadCF = allData.slice(0,4).map(() => crossfilter()) // slice to 2 for testing
+        let threadCF = allData.slice(0,4).map(() => crossfilter()) 
 
-        // create stream simulator from allData
-        // set up a generator function to simulate a data stream from the read data
-        // 
         streamIter = (function* (){
             for(let datai=0; datai<allData[0].length;datai++){
             threadCF.forEach( (cf, cfnumber) =>
                      cf.add(allData[cfnumber].slice(datai,datai+1)))
                      yield datai
-
             }   
         })()
         // button for streaming
-        d3.select("body").append("p").append("button").text("Simuate streamed value")
-            .on("click", () => streamIter.next());
+         d3.select("body").append("p").append("button").text("Simuate streamed value")
+             .on("click", () => streamIter.next());
+        
+        // create div for boxplot and crawler
+        d3.select("body")
+            .append("div")
+            .attr("class","plotContainer")
 
-        // our crawler factory. For a 700 wide cralwer, we are going to space them
-        // 50 pixels apart there is room for 14 data points.
         let crawlup = crawler([700, 200], 14)
 
-        // svg to draw in
-        svg = d3.select("body").append("svg").attr("width", 200).attr("height", allData.length * 250 + 10) // our svg
-        let svg1 = d3.select("body").append("p").style("margin-left", "50px")
-            .append("svg").attr("width", 900).attr("height", "1000") // our svg
+        svg = d3.selectAll(".plotContainer")
+            .append("p")
+            .style("max-width", "30%").style("float","left")
+            .append("svg")
+            .attr("width", 200).attr("height", allData.length * 120 + 10)
+
+        let svg1 = d3.selectAll(".plotContainer")
+            .append("p")
+            .style("max-width", "70%").style("float", "right")
+            .append("svg")
+            .attr("width", 900).attr("height", allData.length * 120 + 10)
 
         // create and register our crossfilters with the layout
-        let tc = tracklayout(crawlup) // tc should not need to know crawlup
+        let tc = tracklayout(crawlup) 
 
-        let crawlgs = [] // index associates crawlgs with tc registry. Better ideas for this?
-        threadCF.map( (cf, i) => {
-            crawlgs[i] =  crawlup(svg1)
-            tc.register(cf) // Get rid of 2nd argument - tc should not need this info
-            cfcrawlsetup( crawlgs[i], cf, i * 250) // should initializing be in the tc?
-            // boxplot(cf, svg, yoffset = i*250, i)
+        let crawlgs = [] 
+         threadCF.map( (cf, i) => {
+             crawlgs[i] =  crawlup(svg1)
+             tc.register(cf,crawlgs[i])
+             cfcrawlsetup( crawlgs[i], cf, i * 250)
         })
 
         tc.onNewData( () => {
             console.log("[]==>" , tc.datalength)
-            // all cf's have advanced
-            // do the drawing here
             tc.registry.forEach( (cf, i) => {
                 console.log("redraw the cf", i) 
                 reDraw( cf, crawlgs[i], Math.max(0,tc.datalength-14), tc.datalength )
@@ -102,25 +90,21 @@
             })
             crawlup.crawlto(tc.datalength -1)
         })
-        
-        
-        c1 = crawlup;
+            
+         c1 = crawlup;
     })
+    
 
     let yscale = d3.scaleLinear()
-        .domain([300,600]) // good for amplitude?
+        .domain([300,600]) 
         .range([0, 200])
 
     function reDraw( cf, selection, lowdrawi, hidrawi ){
-        // draw into the given d3 selection between given indicies
-        // of cf. Basically a draw with the limits given.
-        // limits should be anything that might tansition
-        //  into the clipped window. Including rewind sweeping.
         console.log("redraw", cf, selection, lowdrawi, hidrawi )
-        // let lowdrawi = Math.max(0,hidrawi-iwidth)
-        let s = selection.select("#ampcircles") // should keep the old selection
+    
+        let s = selection.select("#ampcircles") 
             .selectAll("circle")
-            .data(cf.all()) // keyed by cf index. SHould use cf filter instead?
+            .data(cf.all()) 
         s   .enter()
             .filter((d,i) => i < hidrawi && i >= lowdrawi)
             .append("circle")
@@ -128,21 +112,10 @@
             .attr("cx", (d, i) => d.ptime_ms / 200 * 50) // should depend on date
             .attr("cy", d => yscale(d.amplitude))
             .attr("r", 5)
-        // s   .each((d,i) => console.log("spotting", i))
-        //     .filter((d,i) => i < lowdrawi)
-        //     .each((d,i) => console.log("removing",i))
-        //     .remove()
-
     }
      function cfcrawlsetup(crawlg, cf, yoffset = 100, xoffset = 100) {
         crawlg.transform(`translate(${xoffset},${yoffset})`)
         crawlg.crawlRect.attr("fill", "lightgrey").style("display", "block")
-
-        // we need a layer that put data points into the crawlgroup, based on
-        // 
-        // figure out scaling for amplitude
-
-
 
         crawlg.append("g").attr("id", "ampcircles")
             .selectAll("circle")
@@ -175,32 +148,24 @@
             .attr("y", 9)
             .attr("dy", "0.71em")
             .text(d => d.ptime_ms)
-
-
-        // should not use d3 axis because the x-extent of the range is not fixed
-        //let xCount = cf.all().length
-        //let xMax = cf.all()[xCount - 1].ptime_ms
-        //crawlg.append("g").attr("transform", "translate(0,180)")
-        //    .call(d3.axisBottom().scale(d3.scaleLinear()
-        //        .range([0, xMax / 200 * 50]).domain([0, xMax])).ticks(xCount))
     }
 
     var popupDiv
     window.addEventListener('load', (event) => {
         popupDiv = d3.select("body").append("div").attr("id","popupDiv");
-        // console.log(popupDiv, "ppp")
     });
     
 
     function boxplot(cf, svg, yoffset, i, xoffset = 0) {    
-        // if (i != 6)
-        // return
+
         const width = 200
-        const height = 200 // thses should be computed to fit the crawl windows
+        const height = 200 
 
         let table = cf.all()
         console.log("size of cf: ", table.length)
+
         if( table.length < 4 ) return
+        
         let dataList = []
         let dataMap = new Map()
         let code = table[0]['threadline']
@@ -231,7 +196,7 @@
             .attr("height", height)
             .attr("fill", "lightgrey")
 
-        // Add X axis
+        //X axis
         var x = d3.scaleBand()
                     .domain(table[0]['threadline'])
                     .range([ 0, width])
@@ -242,7 +207,7 @@
                 .attr("transform", "translate("+ xoffset + "," + Number(yoffset+height) + ")")
                 .call(d3.axisBottom(x));
 
-        // Add Y axis
+        //Y axis
         var y = d3.scaleLinear()
                 .domain([min, max])
                 .range([ height, 0]);
@@ -287,7 +252,7 @@
                 .style("opacity", 0);
             });
 
-            //q3
+        //q3
         svg.append("g")
             .attr("transform", "translate("+ xoffset + "," + Number(yoffset) + ")")
             .selectAll("boxes")
@@ -315,7 +280,7 @@
                  .style("opacity", 0);
             });
 
-        // Show the median
+        // median
         svg.append("g")
             .attr("transform", "translate("+ xoffset + "," + Number(yoffset) + ")")
             .selectAll("medianLines")
@@ -341,7 +306,7 @@
                 .style("opacity", 0);
             });
 
-                // Show the max
+        // max
         svg.append("g")
             .attr("transform", "translate("+ xoffset + "," + Number(yoffset) + ")")
             .selectAll("maxLines")
@@ -367,7 +332,7 @@
                 .style("opacity", 0);
             });
 
-            //min
+        //min
         svg.append("g")
             .attr("transform", "translate("+ xoffset + "," + Number(yoffset) + ")")
             .selectAll("minLines")
@@ -401,7 +366,6 @@
     }
 
     svg {
-        /* border: solid 1px blue; */
         margin: 50px;
     }
 
@@ -414,5 +378,10 @@
         border: 0px;
         border-radius: 8px;
         pointer-events: none;
+    }
+
+    .plotContainer {
+        overflow: hidden;
+        max-width: 100%;
     }
 </style>
